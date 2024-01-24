@@ -1,11 +1,11 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import Account from './lib/models/account.js';
-import Transaction from './lib/models/transaction.js';
+import Account from '../models/account.js';
+import Transaction from '../models/transaction.js';
 
 dotenv.config();
 
-class CoinManager {
+export default class CoinManager {
     #uri;
     #db;
 
@@ -16,21 +16,25 @@ class CoinManager {
     async init() {
         try {
             this.#db = await mongoose.connect(this.#uri);
-
             return true;
         } catch (e) {
             throw new Error(e.message);
         }
     }
 
-    async createAccount(aid, name, groupArr) {
+    async createAccount(accountObj) {
         let account = new Account({
-            aid,
-            name,
-            groupArr,
+            aid: accountObj.aid,
+            name: accountObj.name,
+            // groupArr: ['0'],
+            groupArr: accountObj.groupArr || ['0'],
         });
 
         return await account.save();
+    }
+
+    async getAllAccounts() {
+        return await Account.find({});
     }
 
     async getAccountByAid(aid) {
@@ -66,9 +70,11 @@ class CoinManager {
     }
 
     async #checkTransaction(transactionObj) {
-
-        if (Number(transactionObj.volume) <= 0 || !Number.isInteger(Number(transactionObj.volume))) {
-            throw new Error("The volume should be positive integer!");
+        if (
+            Number(transactionObj.volume) <= 0 ||
+            !Number.isInteger(Number(transactionObj.volume))
+        ) {
+            throw new Error('The volume should be positive integer!');
         }
 
         let checkExistance = await Promise.all([
@@ -79,8 +85,6 @@ class CoinManager {
         if (checkExistance[0] === null || checkExistance[1] === null) {
             throw new Error(`Giver or taker's aid was wrong!`);
         }
-
-
     }
 
     async updateAmount(aid, volume) {
@@ -121,5 +125,3 @@ class CoinManager {
 
     // async findAllMembers(aid) {}
 }
-
-export default CoinManager;

@@ -18,6 +18,8 @@
   "homepage": "https://github.com/nemovim/ken-coin#readme",
   "dependencies": {
     "dotenv": "^16.3.1",
-    "mongoose": "^7.4.3"
+    "mongoose": "^7.4.3",
+    "xlsx": "^0.18.5",
+    "xlsx-populate": "^1.21.0"
   }
 }
