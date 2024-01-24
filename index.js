@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import Account from '../models/account.js';
-import Transaction from '../models/transaction.js';
+import Account from './lib/models/account.js';
+import Transaction from './lib/models/transaction.js';
 
 dotenv.config();
 
