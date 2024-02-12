@@ -25,8 +25,8 @@ export default class CoinManager {
     async createAccount(accountObj) {
         let account = new Account({
             aid: accountObj.aid,
+            email: accountObj.email || accountObj.aid,
             name: accountObj.name,
-            // groupArr: ['0'],
             groupArr: accountObj.groupArr || ['0'],
         });
 
@@ -41,15 +41,20 @@ export default class CoinManager {
         const account = await Account.findOne({
             aid,
         });
-
         return account;
+    }
+
+    async getAccountsByEmail(email) {
+        const accountArr = await Account.find({
+            email,
+        });
+        return accountArr;
     }
 
     async getAccountsByName(name) {
         const accountArr = await Account.find({
             name,
         });
-
         return accountArr;
     }
 
@@ -87,6 +92,15 @@ export default class CoinManager {
         }
     }
 
+    async setAmount(aid, amount) {
+        return await Account.updateOne(
+            {
+                aid,
+            },
+            { amount }
+        );
+    }
+
     async updateAmount(aid, volume) {
         return await Account.updateOne(
             {
@@ -108,20 +122,39 @@ export default class CoinManager {
         }).limit(10);
     }
 
-    async findAllGroups(aid) {
-        return await this.findGroups(aid).reduce(async (prev, group) => {
-            return new Set([
-                ...prev,
-                group,
-                ...(await this.findAllGroups(group)),
-            ]);
-        }, new Set());
-    }
+    // async findAllGroups(aid) {
+    //     return (await this.findGroups(aid)).reduce(async (prev, group) => {
+    //         return new Set([
+    //             ...prev,
+    //             group,
+    //             ...(await this.findAllGroups(group)),
+    //         ]);
+    //     }, new Set());
+    // }
 
     async findGroups(aid) {
-        const account = await this.getAccount(aid);
+        const account = await this.getAccountByAid(aid);
         return account.groupArr;
     }
 
-    // async findAllMembers(aid) {}
+    async findMembers(aid) {
+        const members = await Account.find({
+            groupArr: [aid],
+        });
+
+        // accounts.forEach(account => {
+        //     if (aid in account.groupArr) {
+        //         memberArr.push(account.aid);
+        //     }
+        // });
+
+        return members;
+    }
+
+    async findRoots() {
+        const roots = await Account.find({
+            groupArr: ['0'],
+        });
+        return roots;
+    }
 }
