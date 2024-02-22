@@ -1,64 +1,24 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import Account from './lib/models/account.js';
+import AccountManager from './lib/modules/accountManager.js';
+import MissionManager from './lib/modules/missionManager.js';
 import Transaction from './lib/models/transaction.js';
 
 dotenv.config();
 
-export default class CoinManager {
-    #uri;
-    #db;
-
-    constructor() {
-        this.#uri = process.env.COIN_MONGO_URI;
-    }
-
+class CoinDB {
     async init() {
         try {
-            this.#db = await mongoose.connect(this.#uri);
-            return true;
+            return await mongoose.connect(process.env.COIN_MONGO_URI);
         } catch (e) {
             throw new Error(e.message);
         }
     }
+}
 
-    async createAccount(accountObj) {
-        let account = new Account({
-            aid: accountObj.aid,
-            email: accountObj.email || accountObj.aid,
-            name: accountObj.name,
-            groupArr: accountObj.groupArr || ['0'],
-        });
+class CoinManager {
 
-        return await account.save();
-    }
-
-    async getAllAccounts() {
-        return await Account.find({});
-    }
-
-    async getAccountByAid(aid) {
-        const account = await Account.findOne({
-            aid,
-        });
-        return account;
-    }
-
-    async getAccountsByEmail(email) {
-        const accountArr = await Account.find({
-            email,
-        });
-        return accountArr;
-    }
-
-    async getAccountsByName(name) {
-        const accountArr = await Account.find({
-            name,
-        });
-        return accountArr;
-    }
-
-    async transactCoin(transactionObj) {
+    static async transactCoin(transactionObj) {
         const giver = transactionObj.giver;
         const taker = transactionObj.taker;
         const volume = Number(transactionObj.volume);
@@ -69,12 +29,12 @@ export default class CoinManager {
 
         return await Promise.all([
             transaction.save(),
-            this.updateAmount(giver, -volume),
-            this.updateAmount(taker, volume),
+            AccountManager.updateAmountByAid(giver, -volume),
+            AccountManager.updateAmountByAid(taker, volume),
         ]);
     }
 
-    async #checkTransaction(transactionObj) {
+    static async #checkTransaction(transactionObj) {
         if (
             Number(transactionObj.volume) <= 0 ||
             !Number.isInteger(Number(transactionObj.volume))
@@ -83,38 +43,16 @@ export default class CoinManager {
         }
 
         let checkExistance = await Promise.all([
-            this.getAccountByAid(transactionObj.giver),
-            this.getAccountByAid(transactionObj.taker),
+            AccountManager.getAccountByAid(transactionObj.giver),
+            AccountManager.getAccountByAid(transactionObj.taker),
         ]);
 
         if (checkExistance[0] === null || checkExistance[1] === null) {
-            throw new Error(`Giver or taker's aid was wrong!`);
+            throw new Error(`Giver or taker's aid is wrong!`);
         }
     }
 
-    async setAmount(aid, amount) {
-        return await Account.updateOne(
-            {
-                aid,
-            },
-            { amount }
-        );
-    }
-
-    async updateAmount(aid, volume) {
-        return await Account.updateOne(
-            {
-                aid,
-            },
-            {
-                $inc: {
-                    amount: volume,
-                },
-            }
-        );
-    }
-
-    async getTransactions(date = new Date().toISOString()) {
+    static async getTransactions(date = new Date().toISOString()) {
         return await Transaction.find({
             createdAt: {
                 $lt: date,
@@ -122,39 +60,14 @@ export default class CoinManager {
         }).limit(10);
     }
 
-    // async findAllGroups(aid) {
-    //     return (await this.findGroups(aid)).reduce(async (prev, group) => {
-    //         return new Set([
-    //             ...prev,
-    //             group,
-    //             ...(await this.findAllGroups(group)),
-    //         ]);
-    //     }, new Set());
-    // }
+    //--------------- Mission ------------------
 
-    async findGroups(aid) {
-        const account = await this.getAccountByAid(aid);
-        return account.groupArr;
-    }
 
-    async findMembers(aid) {
-        const members = await Account.find({
-            groupArr: [aid],
-        });
+}
 
-        // accounts.forEach(account => {
-        //     if (aid in account.groupArr) {
-        //         memberArr.push(account.aid);
-        //     }
-        // });
-
-        return members;
-    }
-
-    async findRoots() {
-        const roots = await Account.find({
-            groupArr: ['0'],
-        });
-        return roots;
-    }
+export {
+    CoinDB,
+    AccountManager,
+    MissionManager,
+    CoinManager
 }
