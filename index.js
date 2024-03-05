@@ -20,6 +20,9 @@ class CoinDB {
 class CoinManager {
     static async transactCoin(transactionObj) {
         if (await this.#canTransact(transactionObj)) {
+            if (transactionObj.reason === undefined) {
+                transactionObj.reason = 'Transaction';
+            }
             return await Promise.allSettled([
                 TransactionManager.createTransaction(transactionObj),
                 AccountManager.updateAmountByAid(
